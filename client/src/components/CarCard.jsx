@@ -7,7 +7,11 @@ const CarCard = ({ car }) => {
   const navigate = useNavigate();
 
   return (
-    <div onClick={()=> { navigate(`/car-details/${car._id}`); scrollTo(0,0)}}
+    <div
+      onClick={() => {
+        navigate(`/car-details/${car._id}`);
+        scrollTo(0, 0);
+      }}
       className="group rounded-xl overflow-hidden shadow-lg hover:-translate-y-1 
     transition-all duration-500 cursor-pointer"
     >
@@ -19,7 +23,7 @@ const CarCard = ({ car }) => {
             transition-transform duration-500 group-hover:scale-105"
         />
 
-        {(car?.isAvailable ?? car?.isAvaliable) && (
+        {(car?.isAvaliable ?? car?.isAvaliable) && (
           <p
             className="absolute top-4 left-4 bg-primary/90
             text-white text-xs px-2.5 py-1 rounded-full "

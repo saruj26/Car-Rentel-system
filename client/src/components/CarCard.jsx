@@ -23,12 +23,12 @@ const CarCard = ({ car }) => {
             transition-transform duration-500 group-hover:scale-105"
         />
 
-        {(car?.isAvaliable ?? car?.isAvaliable) && (
+        {(car?.isAvailale ?? car?.isAvailale) && (
           <p
             className="absolute top-4 left-4 bg-primary/90
             text-white text-xs px-2.5 py-1 rounded-full "
           >
-            Available Now
+            Availale Now
           </p>
         )}
 

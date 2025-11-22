@@ -43,72 +43,76 @@ export const addCar = async (req, res) => {
     const image = optimizedImageUrl;
     await Car.create({ ...car, owner: _id, image });
     res.json({ success: true, message: "Car added successfully" });
-
   } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
   }
 };
 
-
 // API to get all cars of an owner
 export const getOwnerCars = async (req, res) => {
   try {
     const { _id } = req.user;
-    const cars = await Car.find({owner: _id});
-    res.json({success: true, cars});
-
-  }catch(error){
+    const cars = await Car.find({ owner: _id });
+    res.json({ success: true, cars });
+  } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
   }
-}
+};
 
-// API to Toggle car availability
+// API to Toggle car Availability
 export const toggleCarAvailability = async (req, res) => {
-   try {
+  try {
     const { _id } = req.user;
-    const {carID} = req.body;
-    const car = await Car.findById(carID);
+    const { carId } = req.body;
+    const car = await Car.findById(carId);
 
     // check if the car belongs to the owner
-    if(car.owner.toString() !== _id.toString()){
-      return res.json({success: false, message: "You are not authorized to perform this action"});
+    if (car.owner.toString() !== _id.toString()) {
+      return res.json({
+        success: false,
+        message: "You are not authorized to perform this action",
+      });
     }
-    car.isAvaliable = !car.isAvaliable;
+    car.isAvailale = !car.isAvailale;
     await car.save();
 
-    res.json({success: true, message: "Car availability updated successfully"});
-
-  }catch(error){
+    res.json({
+      success: true,
+      message: "Car Availability updated successfully",
+    });
+  } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
   }
-}
+};
 
 // API to Delete a car
 export const deleteCar = async (req, res) => {
-   try {
+  try {
     const { _id } = req.user;
-    const { carID } = req.body;
-    const car = await Car.findById(carID);
+    const { carId } = req.body;
+    const car = await Car.findById(carId);
 
     // check if the car belongs to the owner
-    if(car.owner.toString() !== _id.toString()){
-      return res.json({success: false, message: "You are not authorized to perform this action"});
+    if (car.owner.toString() !== _id.toString()) {
+      return res.json({
+        success: false,
+        message: "You are not authorized to perform this action",
+      });
     }
 
     car.owner = null;
-    car.isAvaliable = false;
+    car.isAvailale = false;
     await car.save();
 
-    res.json({success: true, message: "Car Removed successfully"});
-
-  }catch(error){
+    res.json({ success: true, message: "Car Removed successfully" });
+  } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
   }
-}
+};
 
 // Api to get Dashboard Data
 
@@ -116,32 +120,47 @@ export const getDashboardData = async (req, res) => {
   try {
     const { _id, role } = req.user;
 
-    if(role !== "owner"){
-      return res.json({ success: false, message: "You are not authorized to access this data"});
+    if (role !== "owner") {
+      return res.json({
+        success: false,
+        message: "You are not authorized to access this data",
+      });
     }
 
-    const cars = await Car.find({owner: _id})
-    const bookings = await Booking.find({owner: _id}).populate('car').sort({createdAt: -1});
-    const pendingBookings = await Booking.find({owner: _id, status: "pending"});
-    const completedBookings = await Booking.find({owner: _id, status: "confirmed"});
-    const cancelledBookings = await Booking.find({owner: _id, status: "cancelled"});
+    const cars = await Car.find({ owner: _id });
+    const bookings = await Booking.find({ owner: _id })
+      .populate("car")
+      .sort({ createdAt: -1 });
+    const pendingBookings = await Booking.find({
+      owner: _id,
+      status: "pending",
+    });
+    const completedBookings = await Booking.find({
+      owner: _id,
+      status: "confirmed",
+    });
 
     // calculate total earnings
-    const monthlyRevenue =bookings.slice().filter(booking => booking.status === 'confirmed').reduce((acc, booking) => acc + booking.price, 0);
+    const monthlyRevenue = bookings
+      .slice()
+      .filter((booking) => booking.status === "confirmed")
+      .reduce((acc, booking) => acc + booking.price, 0);
 
     const dashboardData = {
-      carsCount: cars.length,
+      totalCars: cars.length,
       totalBookings: bookings.length,
       pendingBookings: pendingBookings.length,
       completedBookings: completedBookings.length,
-      recentBookings: bookings.slice(0,3),
+      recentBookings: bookings.slice(0, 3),
       monthlyRevenue,
     };
-  }catch(error){
+
+    return res.json({ success: true, DashboardData: dashboardData });
+  } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
-  } 
-}
+  }
+};
 
 // Api to update user image
 
@@ -149,7 +168,7 @@ export const updateUserImage = async (req, res) => {
   try {
     const { _id } = req.user;
 
-    const imageFile = req.file; 
+    const imageFile = req.file;
     // upload image to imagekit
     const fileBuffer = fs.readFileSync(imageFile.path);
     const response = await imagekit.upload({
@@ -157,27 +176,27 @@ export const updateUserImage = async (req, res) => {
       fileName: imageFile.originalname,
       folder: "/users",
     });
-      
-    var optimizedImageUrl = imagekit.url({ 
+
+    var optimizedImageUrl = imagekit.url({
       path: response.filePath,
       transformation: [
         { width: "400" },
         { quality: "auto" },
-        { format: "webp" }
-      ]
+        { format: "webp" },
+      ],
     });
 
     const image = optimizedImageUrl;
 
-    await User.findByIdAndUpdate(_id, {image});
+    await User.findByIdAndUpdate(_id, { image });
 
-    res.json({success: true, message: "Profile image updated successfully", image});
-
-  }catch(error){
+    res.json({
+      success: true,
+      message: "Profile image updated successfully",
+      image,
+    });
+  } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
   }
-}
-
-
-
+};

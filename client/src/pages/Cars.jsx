@@ -5,7 +5,7 @@ import { assets, dummyCarData } from "../assets/assets";
 import CarCard from "../components/CarCard";
 import { useSearchParams } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
-import { motion } from 'motion/react';
+import { motion } from "motion/react";
 
 const Cars = () => {
   // getting search params from url
@@ -22,20 +22,22 @@ const Cars = () => {
   const [filteredCars, setFilteredCars] = useState([]);
 
   const applyFilter = async () => {
-    if(input === ''){
+    if (input === "") {
       setFilteredCars(cars);
       return null;
     }
 
-    const filtered = cars.slice().filter((car) =>{
-    return car.brand.toLowerCase().includes(input.toLowerCase()) ||
-    car.model.toLowerCase().includes(input.toLowerCase()) ||
-    car.category.toLowerCase().includes(input.toLowerCase()) ||
-    car.transmission.toLowerCase().includes(input.toLowerCase()) 
-  });
+    const filtered = cars.slice().filter((car) => {
+      return (
+        car.brand.toLowerCase().includes(input.toLowerCase()) ||
+        car.model.toLowerCase().includes(input.toLowerCase()) ||
+        car.category.toLowerCase().includes(input.toLowerCase()) ||
+        car.transmission.toLowerCase().includes(input.toLowerCase())
+      );
+    });
 
-  setFilteredCars(filtered);
-}
+    setFilteredCars(filtered);
+  };
 
   const searchCarAvailability = async () => {
     console.log("Searching with:", {
@@ -49,10 +51,10 @@ const Cars = () => {
       returnDate,
     });
     if (data.success) {
-      setFilteredCars(data.AvailaleCars); 
-      if (data.AvailaleCars.length === 0) {
-        // Fixed: was data.AvailaleCars
-        toast.error("No cars Availale for the selected dates and location");
+      // server currently returns `AvailaleCars` (note the typo in the API); keep compatibility
+      setFilteredCars(data.AvailaleCars || data.availableCars || []);
+      if ((data.AvailaleCars || data.availableCars || []).length === 0) {
+        toast.error("No cars available for the selected dates and location");
       }
       return null;
     }
@@ -68,19 +70,20 @@ const Cars = () => {
   return (
     <div>
       <motion.div
-      initial = {{opacity: 0, y: 30}}
-      animate={{opacity:1, y: 0}}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="flex flex-col items-center py-20 bg-light max-md:px-4">
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex flex-col items-center py-20 bg-light max-md:px-4"
+      >
         <Title
           title="Availale Cars"
           subtitle="Browse through our extensive collection of cars for rent"
         />
 
         <motion.div
-          initial = {{opacity: 0, y: 20}}
-        animate={{opacity:1, y: 0}}
-        transition={{ duration: 0.5, delay: 0.3 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
           className="flex items-center bg-white px-4 mt-6 max-w-140 w-full h-12
           rounded-full shadow"
         >
@@ -104,11 +107,12 @@ const Cars = () => {
         </motion.div>
       </motion.div>
 
-      <motion.div 
-      initial = {{opacity: 0}}
-      animate={{opacity:1}}
-      transition={{ duration: 0.6, duration: 0.5 }}
-      className="px-6 md:px-16 lg:px-24 xl:px-32 mt-10">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="px-6 md:px-16 lg:px-24 xl:px-32 mt-10"
+      >
         <p>Showing {filteredCars.length} Cars</p>
 
         <div
@@ -117,11 +121,11 @@ const Cars = () => {
         >
           {filteredCars.map((car, index) => (
             <motion.div
-            initial = {{opacity: 0, y: 20}}
-            animate={{opacity:1, y: 0}}
-            transition={{ duration: 0.4, delay: 0.1 * index}}
-
-             key={index}>
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 * index }}
+              key={index}
+            >
               <CarCard car={car} />
             </motion.div>
           ))}

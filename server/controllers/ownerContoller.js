@@ -20,28 +20,64 @@ export const changeRoleToOwner = async (req, res) => {
 export const addCar = async (req, res) => {
   try {
     const { _id } = req.user;
-    let car = JSON.parse(req.body.carData);
-    const imageFile = req.file;
+    // accept either `car` or `carData` for compatibility
+    const rawCar = req.body.car || req.body.carData;
+    if (!rawCar) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing car data" });
+    }
+    let car;
+    try {
+      car = JSON.parse(rawCar);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid car JSON" });
+    }
 
-    const fileBuffer = fs.readFileSync(imageFile.path);
+    const files = req.files || [];
+    if (!files.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No image files uploaded" });
+    }
 
-    const response = await imagekit.upload({
-      file: fileBuffer,
-      fileName: imageFile.originalname,
-      folder: "/cars",
+    // upload each file to imagekit and collect URLs
+    const uploadedUrls = [];
+    for (const file of files) {
+      const fileBuffer = fs.readFileSync(file.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: file.originalname,
+        folder: "/cars",
+      });
+
+      const optimizedImageUrl = imagekit.url({
+        path: response.filePath,
+        transformation: [
+          { width: "1280" },
+          { quality: "auto" },
+          { format: "webp" },
+        ],
+      });
+
+      uploadedUrls.push(optimizedImageUrl);
+      // remove temp file
+      try {
+        fs.unlinkSync(file.path);
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    const primaryImage = uploadedUrls[0];
+    await Car.create({
+      ...car,
+      owner: _id,
+      image: primaryImage,
+      images: uploadedUrls,
     });
-
-    var optimizedImageUrl = imagekit.url({
-      path: response.filePath,
-      transformation: [
-        { width: "1280" },
-        { quality: "auto" },
-        { format: "webp" },
-      ],
-    });
-
-    const image = optimizedImageUrl;
-    await Car.create({ ...car, owner: _id, image });
     res.json({ success: true, message: "Car added successfully" });
   } catch (error) {
     console.log(error.message);

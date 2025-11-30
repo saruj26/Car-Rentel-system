@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 const AddCar = () => {
   const { axios, currency } = useAppContext();
 
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [car, setCar] = useState({
     brand: "",
     model: "",
@@ -31,9 +31,10 @@ const AddCar = () => {
 
     try {
       const formData = new FormData();
-      formData.append("image", image);
-      // server expects field name `car` (controller does JSON.parse(req.body.car))
-      formData.append("carData", JSON.stringify(car));
+      // append up to 4 images under the same field name `images`
+      images.slice(0, 4).forEach((file) => formData.append("images", file));
+      // server expects JSON string under `car` or `carData`
+      formData.append("car", JSON.stringify(car));
 
       const { data } = await axios.post("/api/owner/add-car", formData);
 
@@ -75,22 +76,37 @@ const AddCar = () => {
       text-sm mt-6 max-w-xl"
       >
         {/*car image*/}
-        <div className="flex items-center gap-2 w-full">
-          <label htmlFor="car-image">
-            <img
-              src={image ? URL.createObjectURL(image) : assets.upload_icon}
-              alt=""
-              className=" h-14 rounded cursor-pointer"
-            />
+        <div className="flex flex-col gap-2 w-full">
+          <label className="text-sm font-medium">Upload up to 4 images</label>
+          <div className="flex items-center gap-3">
+            <label htmlFor="car-images" className="cursor-pointer">
+              <div className="h-14 w-14 rounded border flex items-center justify-center overflow-hidden">
+                {images[0] ? (
+                  <img src={URL.createObjectURL(images[0])} alt="img0" className="h-full w-full object-cover" />
+                ) : (
+                  <img src={assets.upload_icon} alt="upload" className="h-8" />
+                )}
+              </div>
+            </label>
             <input
+              id="car-images"
               type="file"
-              id="car-image"
-              hidden
               accept="image/*"
-              onChange={(e) => setImage(e.target.files[0])}
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files).slice(0, 4);
+                setImages(files);
+              }}
             />
-          </label>
-          <p className="text-sm text-gray-500"> Upload a picture of your car</p>
+            <p className="text-sm text-gray-500"> Upload up to 4 images of your car</p>
+          </div>
+          <div className="flex gap-2 mt-2">
+            {images.map((file, idx) => (
+              <div key={idx} className="h-20 w-28 rounded overflow-hidden border">
+                <img src={URL.createObjectURL(file)} alt={`preview-${idx}`} className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/*car details*/}

@@ -4,12 +4,13 @@ import { assets, dummyCarData } from "../assets/assets";
 import Loader from "../components/Loader";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
-import { motion } from 'motion/react';
+import { motion } from "motion/react";
 
 const CarDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
+  const [thumbnail, setThumbnail] = useState("");
 
   const {
     cars,
@@ -41,7 +42,15 @@ const CarDetails = () => {
   };
 
   useEffect(() => {
-    setCar(cars.find((car) => car._id === id));
+    const found = cars.find((c) => c._id === id);
+    if (found) {
+      setCar(found);
+      const first =
+        found.images && found.images.length
+          ? found.images[0]
+          : found.image || assets.upload_icon;
+      setThumbnail(first);
+    }
   }, [cars, id]);
 
   return car ? (
@@ -57,25 +66,65 @@ const CarDetails = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         {/* Car Image and Basic Info */}
-        <motion.div 
-        initial = {{opacity: 0, y: 30}}
-        animate={{opacity:1, y: 0}}
-        transition={{ duration: 0.6 }}
-        
-        className="lg:col-span-2">
-          <motion.img
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="lg:col-span-2"
+        >
+          {/* <motion.img
             initial = {{ opacity: 0, scale: 0.95}}
             animate={{ opacity:1, scale:1 }}
             transition={{ duration: 0.5, }}
             src={car.image}
             alt={car.model}
             className="w-full h-auto md:max-h-100 object-cover rounded-xl mb-6 shadow-md"
-          />
+          /> */}
+
+          <div className="flex flex-col md:flex-row gap-4 mt-4">
+            <div className="flex gap-4 w-full items-start">
+              {/* Thumbnails column */}
+              <div className="flex flex-col gap-3">
+                {(car?.images?.length
+                  ? car.images
+                  : car?.image
+                  ? [car.image]
+                  : []
+                ).map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setThumbnail(image)}
+                    className="border w-20 h-20 border-gray-200 rounded overflow-hidden cursor-pointer p-0"
+                    aria-label={`Select image ${index + 1}`}
+                  >
+                    <img
+                      src={image}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Main hero image - fills available height and uses object-cover */}
+              <div className="flex-1 rounded-xl overflow-hidden border border-gray-200">
+                <div className="w-full h-[40vh] md:h-[45vh] lg:h-[50vh]">
+                  <img
+                    src={thumbnail || car?.image || assets.upload_icon}
+                    alt="Selected product"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <motion.div
-          initial = {{opacity: 0}}
-          animate={{opacity:1}}
-          transition={{ duration: 0.6, delay: 0.2 }}   
-          className="space-y-6">
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-6"
+          >
             <div>
               <h1 className="text-3xl font-bold">
                 {car.brand} {car.model}
@@ -97,9 +146,9 @@ const CarDetails = () => {
                 { icon: assets.location_icon, text: `${car.location}` },
               ].map(({ icon, text }) => (
                 <motion.div
-                initial = {{opacity: 0, y: 10}}
-                animate={{opacity:1, y: 0}}
-                transition={{ duration: 0.4 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
                   key={text}
                   className="flex flex-col items-center bg-light
                  p-4 rounded-lg"
@@ -135,12 +184,11 @@ const CarDetails = () => {
           </motion.div>
         </motion.div>
 
-
         {/* Car Booking Section */}
         <motion.form
-        initial = {{opacity: 0, y: 30}}
-        animate={{opacity:1, y: 0}}
-        transition={{ duration: 0.6, delay:0.3 }}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
           onSubmit={handleSubmit}
           className="shadow h-max sticky top-18 rounded-xl p-6 space-y-6 text-gray-500 "
         >

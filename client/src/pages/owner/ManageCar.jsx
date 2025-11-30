@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { assets, dummyCarData } from "../../assets/assets";
 import Title from "../../components/owner/Title";
 import { useAppContext } from "../../context/AppContext";
@@ -8,6 +9,7 @@ const ManageCar = () => {
   const { axios, currency, isOwner } = useAppContext();
 
   const [cars, setCars] = useState([]);
+  const navigate = useNavigate();
 
   const fetchOwnerCars = async () => {
     try {
@@ -56,6 +58,11 @@ const ManageCar = () => {
     }
   };
 
+  const editCar = (carId) => {
+    if (!carId) return;
+    navigate(`/owner/edit-car/${carId}`);
+  };
+
   useEffect(() => {
     isOwner && fetchOwnerCars();
   }, [isOwner]);
@@ -77,13 +84,18 @@ const ManageCar = () => {
               <th className="p-3 font-medium">Car</th>
               <th className="p-3 font-medium max-md:hidden">Category</th>
               <th className="p-3 font-medium">Price</th>
+              <th className="p-3 font-medium">Location</th>
+              <th className="p-3 font-medium">Fuel Type</th>
               <th className="p-3 font-medium max-md:hidden">Status</th>
               <th className="p-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {cars.map((car, index) => (
-              <tr key={index} className="border-t border-borderColor">
+              <tr
+                key={car._id || index}
+                className="border-t border-borderColor"
+              >
                 <td className="p-3 flex items-center gap-3">
                   <img
                     src={car.image}
@@ -103,6 +115,12 @@ const ManageCar = () => {
                 <td className=" p-3 max-md:hidden">{car.category}</td>
                 <td className="p-3">
                   {currency} {car.pricePerDay}/day
+                </td>
+                <td className="p-3">
+                  {car.location}
+                </td>
+                <td className="p-3">
+                  {car.fuel_type}
                 </td>
 
                 <td className="p-3 max-md:hidden">
@@ -132,6 +150,13 @@ const ManageCar = () => {
                     src={assets.delete_icon}
                     alt=""
                     className="cursor-pointer"
+                  />
+
+                  <img
+                    onClick={() => editCar(car._id)}
+                    src={assets.edit_icon}
+                    alt="Edit"
+                    className="cursor-pointer ml-3 bg-gray-400 p-1 rounded"
                   />
                 </td>
               </tr>

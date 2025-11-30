@@ -236,3 +236,170 @@ export const updateUserImage = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
+// API to update car details (owner)
+export const updateCar = async (req, res) => {
+  try {
+    const { _id } = req.user;
+    // car data can be in `car` or `carData` (JSON string)
+    const rawCar = req.body.car || req.body.carData;
+    if (!rawCar) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing car data" });
+    }
+
+    let carUpdate;
+    try {
+      carUpdate = JSON.parse(rawCar);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid car JSON" });
+    }
+
+    const carId = req.body.carId || req.body.carID || carUpdate._id;
+    if (!carId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing car id" });
+    }
+
+    const existing = await Car.findById(carId);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Car not found" });
+    }
+
+    // ensure owner
+    if (!existing.owner || existing.owner.toString() !== _id.toString()) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+    const files = req.files || [];
+    let uploadedUrls = [];
+
+    // Upload files to imagekit with robust error handling and cleanup
+    if (files.length) {
+      try {
+        for (const file of files) {
+          const fileBuffer = fs.readFileSync(file.path);
+          const response = await imagekit.upload({
+            file: fileBuffer,
+            fileName: file.originalname,
+            folder: "/cars",
+          });
+
+          const optimizedImageUrl = imagekit.url({
+            path: response.filePath,
+            transformation: [
+              { width: "1280" },
+              { quality: "auto" },
+              { format: "webp" },
+            ],
+          });
+
+          uploadedUrls.push(optimizedImageUrl);
+        }
+      } catch (uploadErr) {
+        // cleanup any temp files
+        for (const f of files) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch (e) {}
+        }
+        console.error("Image upload failed:", uploadErr.message || uploadErr);
+        return res
+          .status(500)
+          .json({ success: false, message: "Image upload failed" });
+      } finally {
+        // remove temp files from disk
+        for (const f of files) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Determine final images: consider kept images from client, existing images, and newly uploaded images
+    const existingImages =
+      existing.images && existing.images.length
+        ? existing.images
+        : existing.image
+        ? [existing.image]
+        : [];
+    const keptFromClient = Array.isArray(carUpdate.images)
+      ? carUpdate.images
+      : undefined;
+    let finalImages = [];
+
+    if (keptFromClient && keptFromClient.length) {
+      finalImages = keptFromClient.slice();
+    } else {
+      finalImages = existingImages.slice();
+    }
+
+    if (uploadedUrls.length) {
+      finalImages = finalImages.concat(uploadedUrls);
+    }
+
+    if (finalImages.length) {
+      carUpdate.images = finalImages;
+      carUpdate.image = finalImages[0];
+    } else {
+      carUpdate.images = [];
+      carUpdate.image = "";
+    }
+
+    // coerce numeric fields if provided and validate
+    const numericFields = ["year", "pricePerDay", "seating_capacity"];
+    for (const nf of numericFields) {
+      if (carUpdate[nf] !== undefined) {
+        const num = Number(carUpdate[nf]);
+        if (Number.isNaN(num)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid numeric value for ${nf}`,
+          });
+        }
+        carUpdate[nf] = num;
+      }
+    }
+
+    // apply update (only allowed fields)
+    const allowed = [
+      "brand",
+      "model",
+      "year",
+      "pricePerDay",
+      "category",
+      "transmission",
+      "fuel_type",
+      "seating_capacity",
+      "location",
+      "description",
+      "image",
+      "images",
+    ];
+
+    const updatePayload = {};
+    for (const key of allowed) {
+      if (carUpdate[key] !== undefined) updatePayload[key] = carUpdate[key];
+    }
+
+    const updated = await Car.findByIdAndUpdate(
+      carId,
+      { $set: updatePayload },
+      { new: true }
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Car updated successfully",
+      car: updated,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
+  }
+};

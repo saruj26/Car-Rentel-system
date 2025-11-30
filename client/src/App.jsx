@@ -14,6 +14,7 @@ import ManageCar from "./pages/owner/ManageCar";
 import Login from "./components/Login";
 import { Toaster } from "react-hot-toast";
 import { useAppContext } from "./context/AppContext";
+import EditCar from "./pages/owner/EditCar";
 
 const App = () => {
   const isOwnerPath = useLocation().pathname.startsWith("/owner");
@@ -35,6 +36,7 @@ const App = () => {
         <Route path="/owner" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="add-car" element={<AddCar />} />
+          <Route path="edit-car/:id" element={<EditCar />} />
           <Route path="manage-cars" element={<ManageCar />} />
           <Route path="manage-bookings" element={<ManageBookings />} />
         </Route>

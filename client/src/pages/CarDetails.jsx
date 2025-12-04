@@ -11,6 +11,7 @@ const CarDetails = () => {
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [thumbnail, setThumbnail] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const {
     cars,
@@ -21,6 +22,7 @@ const CarDetails = () => {
     setPickupDate,
     setReturnDate,
   } = useAppContext();
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -45,11 +47,15 @@ const CarDetails = () => {
     const found = cars.find((c) => c._id === id);
     if (found) {
       setCar(found);
-      const first =
+      const imgs =
         found.images && found.images.length
-          ? found.images[0]
-          : found.image || assets.upload_icon;
+          ? found.images
+          : found.image
+          ? [found.image]
+          : [];
+      const first = imgs.length ? imgs[0] : assets.upload_icon;
       setThumbnail(first);
+      setCurrentIndex(0);
     }
   }, [cars, id]);
 
@@ -57,8 +63,7 @@ const CarDetails = () => {
     <div className="px-6 md:px-16 lg:px-24 xl:px-32 mt-16">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 mb-6 text-gray-500 
-      cursor-pointer"
+        className="flex items-center gap-2 mb-6 text-gray-500 cursor-pointer"
       >
         <img src={assets.arrow_icon} alt="" className="rotate-180 opacity-65" />
         Back to all cars
@@ -70,18 +75,9 @@ const CarDetails = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="lg:col-span-2"
+          className="lg:col-span-2 space-y-6"
         >
-          {/* <motion.img
-            initial = {{ opacity: 0, scale: 0.95}}
-            animate={{ opacity:1, scale:1 }}
-            transition={{ duration: 0.5, }}
-            src={car.image}
-            alt={car.model}
-            className="w-full h-auto md:max-h-100 object-cover rounded-xl mb-6 shadow-md"
-          /> */}
-
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex gap-4 w-full items-start">
               {/* Thumbnails column */}
               <div className="flex flex-col gap-3">
@@ -89,31 +85,90 @@ const CarDetails = () => {
                   ? car.images
                   : car?.image
                   ? [car.image]
-                  : []
-                ).map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setThumbnail(image)}
-                    className="border w-20 h-20 border-gray-200 rounded overflow-hidden cursor-pointer p-0"
-                    aria-label={`Select image ${index + 1}`}
-                  >
-                    <img
-                      src={image}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+                  : [])
+                  .map((image, index) => {
+                    const isActive = index === currentIndex;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setThumbnail(image);
+                          setCurrentIndex(index);
+                        }}
+                        className={`w-20 h-20 rounded overflow-hidden cursor-pointer p-0 flex items-center justify-center border ${isActive ? 'ring-2 ring-primary border-primary' : 'border-gray-200'}`}
+                        aria-label={`Select image ${index + 1}`}
+                      >
+                        <img
+                          src={image}
+                          alt={`Thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    );
+                  })}
               </div>
 
-              {/* Main hero image - fills available height and uses object-cover */}
-              <div className="flex-1 rounded-xl overflow-hidden border border-gray-200">
-                <div className="w-full h-[40vh] md:h-[45vh] lg:h-[50vh]">
+              {/* Main hero image */}
+              <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 relative">
+                {/* left accent bar to indicate big view */}
+                <div className="absolute left-0 top-0 h-full w-1 bg-primary z-10" />
+                <div className="w-full h-[40vh] md:h-[45vh] lg:h-[50vh] relative">
                   <img
                     src={thumbnail || car?.image || assets.upload_icon}
                     alt="Selected product"
                     className="w-full h-full object-cover rounded-xl"
                   />
+
+                  {/* Left / Right arrows overlay */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const imgs =
+                        car?.images && car.images.length
+                          ? car.images
+                          : car?.image
+                          ? [car.image]
+                          : [];
+                      if (!imgs.length) return;
+                      const n = imgs.length;
+                      const next = (currentIndex - 1 + n) % n;
+                      setCurrentIndex(next);
+                      setThumbnail(imgs[next]);
+                    }}
+                    aria-label="Previous image"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                  >
+                    <img
+                      src={assets.arrow_icon}
+                      alt="prev"
+                      className="w-4 h-4 rotate-180"
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const imgs =
+                        car?.images && car.images.length
+                          ? car.images
+                          : car?.image
+                          ? [car.image]
+                          : [];
+                      if (!imgs.length) return;
+                      const n = imgs.length;
+                      const next = (currentIndex + 1) % n;
+                      setCurrentIndex(next);
+                      setThumbnail(imgs[next]);
+                    }}
+                    aria-label="Next image"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                  >
+                    <img
+                      src={assets.arrow_icon}
+                      alt="next"
+                      className="w-4 h-4"
+                    />
+                  </button>
                 </div>
               </div>
             </div>
@@ -150,8 +205,7 @@ const CarDetails = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                   key={text}
-                  className="flex flex-col items-center bg-light
-                 p-4 rounded-lg"
+                  className="flex flex-col items-center bg-light p-4 rounded-lg"
                 >
                   <img src={icon} alt="" className="h-5 mb-2" />
                   <p>{text}</p>
@@ -166,7 +220,7 @@ const CarDetails = () => {
 
             <div>
               <h1 className="text-xl font-medium mb-3">Features</h1>
-              <ul className=" grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   "360 camera",
                   "Bluetooth",
@@ -190,19 +244,12 @@ const CarDetails = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           onSubmit={handleSubmit}
-          className="shadow h-max sticky top-18 rounded-xl p-6 space-y-6 text-gray-500 "
+          className="shadow h-max sticky top-18 rounded-xl p-6 space-y-6 text-gray-500"
         >
-          <p
-            className="flex items-center justify-between text-2xl text-gray-800
-                font-semibold"
-          >
+          <p className="flex items-center justify-between text-2xl text-gray-800 font-semibold">
             {currency}
             {car.pricePerDay}
-            <span
-              className="text-base
-                text-gray-400 font-normal"
-            >
-              {" "}
+            <span className="text-base text-gray-400 font-normal">
               per day
             </span>
           </p>
@@ -218,8 +265,7 @@ const CarDetails = () => {
               onChange={(e) => setPickupDate(e.target.value)}
               type="date"
               id="pickup-date"
-              className="border 
-                  border-borderColor rounded-lg px-3 py-2 "
+              className="border border-borderColor rounded-lg px-3 py-2"
               required
               min={new Date().toISOString().split("T")[0]}
             />
@@ -234,21 +280,18 @@ const CarDetails = () => {
               onChange={(e) => setReturnDate(e.target.value)}
               type="date"
               id="return-date"
-              className="border 
-                  border-borderColor rounded-lg px-3 py-2 "
+              className="border border-borderColor rounded-lg px-3 py-2"
               required
             />
           </div>
 
           <button
-            className="w-full bg-primary text-white py-3 rounded-xl
-                hover:bg-primary-dull font-medium cursor-pointer"
+            className="w-full bg-primary text-white py-3 rounded-xl hover:bg-primary-dull font-medium cursor-pointer"
           >
             Book Now
           </button>
 
           <p className="text-center text-sm">
-            {" "}
             No credit card required to reserve
           </p>
         </motion.form>

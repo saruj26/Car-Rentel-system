@@ -1,180 +1,103 @@
-import React, { useEffect, useRef, useState } from "react";
-import { assets } from "../assets/assets";
+import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
 /**
- * AnimatedCardSwap
- * Renders a list of cards with images and every `interval` ms performs a left-rotation
- * where the image in card i moves to card (i-1) (first -> last, second -> first, ...).
- *
- * This implementation uses a FLIP-style clone + Web Animations API to animate each
- * image from its source card to its destination card, then commits the new image order
- * into React state.
- *
- * Props:
- * - cards: array of { id, title, subtitle, image }
- * - interval: ms between rotations (default 3000)
- * - duration: animation duration in ms (default 600)
+ * StepCardDisplay
+ * Shows cards in a step-by-step format with manual navigation
+ * instead of automatic rotation
  */
-const AnimatedCardSwap = ({
-  cards: initialCards = [],
-  interval = 3000,
-  duration = 600,
+const StepCardDisplay = ({
+  cards = [],
   showControls = false,
+  autoAdvance = false,
+  interval = 4000,
 }) => {
-  const [cards, setCards] = useState(() => initialCards.slice());
-  const containerRef = useRef(null);
-  const cardRefs = useRef([]);
-  const imgRefs = useRef([]);
-  const timerRef = useRef(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // reset internal cards if initialCards changes
-    setCards(initialCards.slice());
-  }, [initialCards]);
-
-  useEffect(() => {
-    start();
-    return () => stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards]);
-
-  function start() {
-    stop();
-    timerRef.current = setInterval(() => {
-      rotateOnce();
-    }, interval);
-  }
-  function stop() {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    let timer;
+    if (autoAdvance && cards.length > 1) {
+      timer = setInterval(() => {
+        setCurrentStep((prev) => (prev + 1) % cards.length);
+      }, interval);
     }
-  }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [autoAdvance, cards.length, interval]);
 
-  // FLIP animation: clone image elements, animate cloned nodes from source rect to dest rect
-  async function rotateOnce() {
-    if (!containerRef.current) return;
-    const n = cards.length;
-    if (n <= 1) return;
+  const nextStep = () => {
+    setCurrentStep((prev) => (prev + 1) % cards.length);
+  };
 
-    // compute destination index for each image: dest = (i - 1 + n) % n (left shift)
-    const destIndex = (i) => (i - 1 + n) % n;
-
-    // gather bounding rects for cards
-    const rects = cardRefs.current.map(
-      (el) => el?.getBoundingClientRect() || null
-    );
-
-    // make clone elements and animate
-    const clones = [];
-    const animations = [];
-
-    for (let i = 0; i < n; i++) {
-      const imgEl = imgRefs.current[i];
-      const srcRect = rects[i];
-      const dIdx = destIndex(i);
-      const dstRect = rects[dIdx];
-      if (!imgEl || !srcRect || !dstRect) continue;
-
-      // create clone node
-      const clone = imgEl.cloneNode(true);
-      const body = document.body;
-      clone.style.position = "absolute";
-      clone.style.left = `${srcRect.left}px`;
-      clone.style.top = `${srcRect.top}px`;
-      clone.style.width = `${srcRect.width}px`;
-      clone.style.height = `${srcRect.height}px`;
-      clone.style.margin = "0";
-      clone.style.zIndex = 9999;
-      clone.style.pointerEvents = "none";
-      body.appendChild(clone);
-      clones.push(clone);
-
-      // compute translate delta
-      const deltaX = dstRect.left - srcRect.left;
-      const deltaY = dstRect.top - srcRect.top;
-
-      // animate using Web Animations API (falls back to CSS transition if not supported)
-      const anim = clone.animate(
-        [
-          { transform: "translate(0px, 0px)", opacity: 1 },
-          { transform: `translate(${deltaX}px, ${deltaY}px)`, opacity: 1 },
-        ],
-        {
-          duration,
-          easing: "cubic-bezier(.2,.8,.2,1)",
-          fill: "forwards",
-        }
-      );
-      animations.push(anim.finished);
-    }
-
-    // wait for all animations to finish and then commit the new order
-    try {
-      await Promise.all(animations);
-    } catch (e) {
-      // ignore
-    }
-
-    // cleanup clones
-    clones.forEach((c) => c.remove());
-
-    // commit left-shifted images into state
-    setCards((prev) => {
-      if (!prev || prev.length <= 1) return prev;
-      const newCards = prev.slice(1).concat(prev[0]);
-      return newCards;
-    });
-  }
+  const prevStep = () => {
+    setCurrentStep((prev) => (prev - 1 + cards.length) % cards.length);
+  };
 
   return (
-    <div ref={containerRef} className="w-full">
-      <div
-        className="flex gap-4 overflow-x-auto"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        {cards.map((c, i) => (
+    <div className="w-full">
+      {/* Step Indicators */}
+      <div className="flex justify-center gap-1 mb-2">
+        {cards.map((_, index) => (
           <div
-            key={c.id || i}
-            ref={(el) => (cardRefs.current[i] = el)}
-            className="flex-shrink-0 bg-white rounded-lg shadow-sm flex flex-col items-center text-center"
-            style={{ width: 144 }}
-          >
-            <div className="h-36 w-full  flex items-center justify-center overflow-hidden rounded">
-              <img
-                ref={(el) => (imgRefs.current[i] = el)}
-                src={c.image}
-                alt={c.title}
-                className="h-full w-full object-cover"
-                style={{ maxHeight: 144 }}
-              />
-            </div>
-          </div>
+            key={index}
+            className={`h-1 rounded-full transition-all duration-300 ${
+              index === currentStep
+                ? "bg-primary w-6"
+                : "bg-gray-300 w-2"
+            }`}
+          />
         ))}
       </div>
-      {showControls && (
-        <div className="flex gap-2 mt-3 justify-center">
+
+      {/* Card Container */}
+      <div className="relative h-80 w-full">
+        {cards.map((card, index) => (
+          <motion.div
+            key={card.id || index}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: index === currentStep ? 1 : 0,
+              scale: index === currentStep ? 1 : 0.8,
+              display: index === currentStep ? "block" : "none",
+            }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 bg-white rounded-lg shadow-sm flex flex-col items-center justify-center overflow-hidden"
+          >
+            <div className="h-full w-full flex items-center justify-center">
+              <img
+                src={card.image}
+                alt={card.title}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-white">
+              <h3 className="font-bold text-lg">{card.title}</h3>
+              <p className="text-sm opacity-90">{card.subtitle}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Navigation Controls */}
+      {showControls && cards.length > 1 && (
+        <div className="flex justify-between items-center mt-3">
           <button
             type="button"
-            onClick={() => rotateOnce()}
-            className="px-3 py-2 bg-primary text-white rounded"
+            onClick={prevStep}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
           >
-            Rotate Now
+            ← Prev
           </button>
+          <div className="text-sm text-gray-600">
+            {currentStep + 1} / {cards.length}
+          </div>
           <button
             type="button"
-            onClick={() => stop()}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded"
+            onClick={nextStep}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dull transition"
           >
-            Pause
-          </button>
-          <button
-            type="button"
-            onClick={() => start()}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded"
-          >
-            Play
+            Next →
           </button>
         </div>
       )}
@@ -182,40 +105,35 @@ const AnimatedCardSwap = ({
   );
 };
 
-// Example default export usage using existing assets if no props provided
-export default function AnimatedCardSwapExported(props) {
+// Default export wrapper
+export default function StepCardDisplayExported(props) {
   const defaultCards = [
     {
       id: "c1",
       title: "Honda",
       subtitle: "SUV · Auto",
-      image: assets.car_image1,
+      image: props.assets?.car_image1 || "",
     },
     {
       id: "c2",
       title: "Toyota",
       subtitle: "Sedan · Auto",
-      image: assets.car_image2,
+      image: props.assets?.car_image2 || "",
     },
     {
       id: "c3",
       title: "Jeep",
       subtitle: "SUV · Auto",
-      image: assets.car_image3,
-    },
-    {
-      id: "c4",
-      title: "Ford",
-      subtitle: "Compact · Auto",
-      image: assets.car_image4,
+      image: props.assets?.car_image3 || "",
     },
   ];
 
   return (
-    <AnimatedCardSwap
+    <StepCardDisplay
       cards={props.cards || defaultCards}
-      interval={props.interval || 3500}
-      duration={props.duration || 650}
+      showControls={props.showControls || false}
+      autoAdvance={props.autoAdvance || false}
+      interval={props.interval || 4000}
     />
   );
 }

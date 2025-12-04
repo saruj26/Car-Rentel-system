@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { assets, cityList } from "../assets/assets";
-import AnimatedCardSwap from "./AnimatedCardSwap";
+import StepCardDisplay from "./AnimatedCardSwap"; // Now uses StepCardDisplay
 import { useAppContext } from "../context/AppContext";
 import { motion } from "motion/react";
 
@@ -22,7 +22,7 @@ const Hero = () => {
     );
   };
 
-  // Define proper card data for left stack
+  // Define proper card data for left stack (3-step display)
   const leftCards = [
     { 
       id: "l1", 
@@ -36,21 +36,33 @@ const Hero = () => {
       subtitle: "Sports Coupe", 
       image: assets.car_image2 
     },
+    { 
+      id: "l3", 
+      title: "Audi", 
+      subtitle: "Premium Sedan", 
+      image: assets.car_image3 
+    },
   ];
 
-  // Define proper card data for right stack
+  // Define proper card data for right stack (3-step display)
   const rightCards = [
     { 
       id: "r1", 
-      title: "Audi", 
-      subtitle: "Premium SUV", 
-      image: assets.car_image3 
-    },
-    { 
-      id: "r2", 
       title: "Porsche", 
       subtitle: "Sports Car", 
       image: assets.car_image4 
+    },
+    { 
+      id: "r2", 
+      title: "Range Rover", 
+      subtitle: "Luxury SUV", 
+      image: assets.car_image5 || assets.car_image1 // Fallback if needed
+    },
+    { 
+      id: "r3", 
+      title: "Tesla", 
+      subtitle: "Electric Luxury", 
+      image: assets.car_image6 || assets.car_image2 // Fallback if needed
     },
   ];
 
@@ -79,36 +91,36 @@ const Hero = () => {
         Luxury cars on Rent
       </motion.h1>
 
-      {/* left decorative card stack — visible on small+ screens, scaled down on small displays */}
+      {/* left decorative card stack — step-by-step display */}
       <motion.div 
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.4 }}
-        className="hidden sm:block absolute left-2 sm:left-6 top-20 sm:top-28 z-10"
+        className="hidden lg:block absolute left-2 sm:left-6 top-20 sm:top-28 z-10"
       >
-        <div className="w-28 md:w-80">
-          <AnimatedCardSwap
-            interval={4000}
-            duration={700}
-            showControls={false}
+        <div className="w-28 md:w-72">
+          <StepCardDisplay
             cards={leftCards}
+            autoAdvance={true}
+            interval={3500}
+            showControls={false}
           />
         </div>
       </motion.div>
 
-      {/* right decorative card stack — visible on small+ screens, scaled down on small displays */}
+      {/* right decorative card stack — step-by-step display */}
       <motion.div 
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.4 }}
-        className="hidden sm:block absolute right-2 sm:right-6 top-20 sm:top-28 z-10"
+        className="hidden lg:block absolute right-2 sm:right-6 top-20 sm:top-28 z-10"
       >
-        <div className="w-28 md:w-78">
-          <AnimatedCardSwap
-            interval={4200}
-            duration={700}
-            showControls={false}
+        <div className="w-28 md:w-72">
+          <StepCardDisplay
             cards={rightCards}
+            autoAdvance={true}
+            interval={4000}
+            showControls={false}
           />
         </div>
       </motion.div>

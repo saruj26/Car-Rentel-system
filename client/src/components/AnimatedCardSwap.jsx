@@ -51,7 +51,7 @@ const StepCardDisplay = ({
       </div>
 
       {/* Card Container */}
-      <div className="relative h-80 w-full">
+      <div className="relative h-90 w-full">
         {cards.map((card, index) => (
           <motion.div
             key={card.id || index}

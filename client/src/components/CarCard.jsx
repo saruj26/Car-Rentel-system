@@ -1,10 +1,36 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../context/AppContext";
 
 const CarCard = ({ car }) => {
   const currency = import.meta.env.VITE_CURRENCY || "Rs";
   const navigate = useNavigate();
+  const { axios } = useAppContext();
+  const [avgRating, setAvgRating] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchAvg = async () => {
+      try {
+        const { data } = await axios.get(`/api/reviews/car/${car._id}/average`);
+        if (!mounted) return;
+        if (data.success) {
+          // if there are no reviews (count === 0) show dash by keeping avgRating null
+          if (data.count && Number(data.count) > 0) {
+            const v = Number(data.avgRating) || 0;
+            setAvgRating(v.toFixed(1));
+          } else {
+            setAvgRating(null);
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchAvg();
+    return () => (mounted = false);
+  }, [car._id]);
 
   return (
     <div
@@ -42,6 +68,28 @@ const CarCard = ({ car }) => {
           </span>
           <span className="text-sm text-white/80"> / day</span>
         </div>
+
+        {/* Rating badge at top-right */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/car-details/${car._id}?showReviews=true`);
+          }}
+          className="absolute top-4 right-4 bg-white/90 text-black px-3 py-1 rounded-full flex items-center gap-2 shadow"
+          aria-label="View reviews"
+        >
+          <svg
+            className="w-4 h-4 text-yellow-400"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M12 .587l3.668 7.431L23.327 9.6l-5.664 5.522L18.999 24 12 20.202 5.001 24l1.337-8.878L.674 9.6l7.659-1.582L12 .587z" />
+          </svg>
+          <span className="text-sm font-medium">
+            {avgRating ? avgRating : "—"}
+          </span>
+        </button>
       </div>
 
       <div className="p-4 sm:p-5">

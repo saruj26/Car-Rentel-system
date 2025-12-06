@@ -77,10 +77,12 @@ const Hero = () => {
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
+      
       className="relative h-screen flex flex-col items-center justify-center gap-14 text-center"
     >
       {/* DARK GRADIENT OVERLAY FOR READABILITY */}
-      <div className="absolute inset-0 bg-black/60"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-[#120f0f]/80 via-[#120f0f]/60 to-transparent"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div> 
 
       <motion.h1
         initial={{ y: 50, opacity: 0 }}

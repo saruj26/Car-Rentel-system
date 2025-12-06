@@ -12,6 +12,11 @@ const CarDetails = () => {
   const [car, setCar] = useState(null);
   const [thumbnail, setThumbnail] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState(null);
+  const [canReview, setCanReview] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
 
   const {
     cars,
@@ -22,7 +27,53 @@ const CarDetails = () => {
     setPickupDate,
     setReturnDate,
   } = useAppContext();
-  
+
+  // fetch reviews & average rating for this car
+  const fetchReviews = async () => {
+    try {
+      const { data } = await axios.get(`/api/reviews/car/${id}`);
+      if (data.success) setReviews(data.reviews || []);
+    } catch (err) {
+      // ignore
+    }
+    try {
+      const { data } = await axios.get(`/api/reviews/car/${id}/average`);
+      if (data.success) {
+        // show avg only when there are reviews
+        if (data.count && Number(data.count) > 0) {
+          const v = Number(data.avgRating) || 0;
+          setAvgRating(v.toFixed(1));
+        } else {
+          setAvgRating(null);
+        }
+      }
+    } catch (err) {}
+  };
+
+  const checkCanReview = async () => {
+    try {
+      const { data } = await axios.get(`/api/bookings/user`);
+      if (data.success) {
+        const has = (data.bookings || []).some((b) => {
+          // b.car may be populated object
+          const carId = b.car?._id || b.car;
+          return String(carId) === String(id) && b.status === "confirmed";
+        });
+        setCanReview(has);
+      }
+    } catch (err) {
+      setCanReview(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchReviews();
+      checkCanReview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -85,27 +136,31 @@ const CarDetails = () => {
                   ? car.images
                   : car?.image
                   ? [car.image]
-                  : [])
-                  .map((image, index) => {
-                    const isActive = index === currentIndex;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setThumbnail(image);
-                          setCurrentIndex(index);
-                        }}
-                        className={`w-20 h-20 rounded overflow-hidden cursor-pointer p-0 flex items-center justify-center border ${isActive ? 'ring-2 ring-primary border-primary' : 'border-gray-200'}`}
-                        aria-label={`Select image ${index + 1}`}
-                      >
-                        <img
-                          src={image}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    );
-                  })}
+                  : []
+                ).map((image, index) => {
+                  const isActive = index === currentIndex;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setThumbnail(image);
+                        setCurrentIndex(index);
+                      }}
+                      className={`w-20 h-20 rounded overflow-hidden cursor-pointer p-0 flex items-center justify-center border ${
+                        isActive
+                          ? "ring-2 ring-primary border-primary"
+                          : "border-gray-200"
+                      }`}
+                      aria-label={`Select image ${index + 1}`}
+                    >
+                      <img
+                        src={image}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Main hero image */}
@@ -235,6 +290,148 @@ const CarDetails = () => {
                 ))}
               </ul>
             </div>
+            {/* Reviews Section */}
+            <div className="mt-6">
+              <h2 className="text-xl font-medium mb-3">Reviews</h2>
+
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded">
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M12 .587l3.668 7.431L23.327 9.6l-5.664 5.522L18.999 24 12 20.202 5.001 24l1.337-8.878L.674 9.6l7.659-1.582L12 .587z" />
+                  </svg>
+                  <span className="font-semibold">{avgRating || "—"}</span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+
+              {reviews.length === 0 ? (
+                <p className="text-gray-500 mb-4">No reviews yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {reviews.map((r) => (
+                    <li key={r._id} className="p-3 bg-light rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium">
+                          {r.user?.name || r.user?.email || "User"}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {new Date(r.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center text-yellow-500">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < r.rating
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M12 .587l3.668 7.431L23.327 9.6l-5.664 5.522L18.999 24 12 20.202 5.001 24l1.337-8.878L.674 9.6l7.659-1.582L12 .587z" />
+                            </svg>
+                          ))}
+                        </div>
+                      </div>
+                      {r.comment && (
+                        <p className="text-gray-600">{r.comment}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {canReview ? (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    try {
+                      const payload = {
+                        car: id,
+                        rating: newRating,
+                        comment: newComment,
+                      };
+                      const { data } = await axios.post(
+                        `/api/reviews`,
+                        payload
+                      );
+                      if (data.success) {
+                        setNewComment("");
+                        setNewRating(5);
+                        fetchReviews();
+                        toast.success("Review submitted");
+                      } else {
+                        toast.error(data.message || "Failed to submit review");
+                      }
+                    } catch (err) {
+                      toast.error(err.message || "Failed to submit review");
+                    }
+                  }}
+                  className="mt-4 space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm">Your rating:</label>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, idx) => {
+                        const val = idx + 1; // 1..5
+                        const filled = val <= newRating;
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setNewRating(val)}
+                            aria-label={`${val} star${val > 1 ? "s" : ""}`}
+                            className={`w-7 h-7 inline-flex items-center justify-center ${
+                              filled ? "text-yellow-400" : "text-gray-300"
+                            }`}
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M12 .587l3.668 7.431L23.327 9.6l-5.664 5.522L18.999 24 12 20.202 5.001 24l1.337-8.878L.674 9.6l7.659-1.582L12 .587z" />
+                            </svg>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm">Comment (optional)</label>
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="w-full border rounded p-2 mt-1"
+                      rows={3}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-primary text-white px-4 py-2 rounded"
+                  >
+                    Submit review
+                  </button>
+                </form>
+              ) : (
+                <p className="text-sm text-gray-500 mt-4">
+                  Only customers who booked this car (confirmed booking) can
+                  leave a review.
+                </p>
+              )}
+            </div>
           </motion.div>
         </motion.div>
 
@@ -249,9 +446,7 @@ const CarDetails = () => {
           <p className="flex items-center justify-between text-2xl text-gray-800 font-semibold">
             {currency}
             {car.pricePerDay}
-            <span className="text-base text-gray-400 font-normal">
-              per day
-            </span>
+            <span className="text-base text-gray-400 font-normal">per day</span>
           </p>
 
           <hr className="border-borderColor my-6" />
@@ -285,9 +480,7 @@ const CarDetails = () => {
             />
           </div>
 
-          <button
-            className="w-full bg-primary text-white py-3 rounded-xl hover:bg-primary-dull font-medium cursor-pointer"
-          >
+          <button className="w-full bg-primary text-white py-3 rounded-xl hover:bg-primary-dull font-medium cursor-pointer">
             Book Now
           </button>
 

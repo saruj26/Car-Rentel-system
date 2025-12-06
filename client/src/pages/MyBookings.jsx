@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { assets, dummyMyBookingsData } from "../assets/assets";
 import Title from "../components/Title";
 import { useAppContext } from "../context/AppContext";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { motion } from 'motion/react';
+import { motion } from "motion/react";
 
 const MyBookings = () => {
   const { axios, user, currency } = useAppContext();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
 
   const fetchBookings = async () => {
@@ -28,10 +30,11 @@ const MyBookings = () => {
 
   return (
     <motion.div
-    initial = {{opacity: 0, y: 30}}
-    animate={{opacity:1, y: 0}}
-    transition={{ duration: 0.6 }}
-    className="px-6 md:px-16 lg:px-24 xl:px-32 2xl:px-48 mt-16 text-sm max-w-7xl">
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="px-6 md:px-16 lg:px-24 xl:px-32 2xl:px-48 mt-16 text-sm max-w-7xl"
+    >
       <Title
         title="My Bookings"
         subTitle="Review your current and past car rental bookings"
@@ -41,9 +44,9 @@ const MyBookings = () => {
       <div>
         {bookings.map((booking, index) => (
           <motion.div
-          initial = {{opacity: 0, y: 0}}
-          animate={{opacity:1, y: 0}}
-          transition={{delay: index * 0.1, duration: 0.4 }}
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.4 }}
             key={booking._id}
             className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border border-borderColor rounded-md mt-5 first:mt-12"
           >
@@ -131,6 +134,29 @@ const MyBookings = () => {
                     ? new Date(booking.createdAt).toISOString().split("T")[0]
                     : ""}
                 </p>
+              </div>
+              <div className="text-right">
+                {/* Show link to car details / reviews for bookings that are confirmed */}
+                {booking.status === "confirmed" && (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/car-details/${booking.car._id}?showReviews=true`
+                      )
+                    }
+                    className="mt-2 inline-block bg-primary text-white px-4 py-2 rounded hover:bg-primary-dull"
+                  >
+                    View / Leave Review
+                  </button>
+                )}
+                {booking.status !== "confirmed" && (
+                  <button
+                    onClick={() => navigate(`/car-details/${booking.car._id}`)}
+                    className="mt-2 inline-block bg-gray-200 text-gray-700 px-4 py-2 rounded"
+                  >
+                    View Car
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

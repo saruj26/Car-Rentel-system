@@ -1,0 +1,169 @@
+import React, { useEffect, useState } from "react";
+import { assets, dummyMyBookingsData } from "../assets/assets";
+import Title from "../components/Title";
+import { useAppContext } from "../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { motion } from "motion/react";
+
+const MyBookings = () => {
+  const { axios, user, currency } = useAppContext();
+  const navigate = useNavigate();
+  const [bookings, setBookings] = useState([]);
+
+  const fetchBookings = async () => {
+    try {
+      const { data } = await axios.get("/api/bookings/user");
+      if (data.success) {
+        setBookings(data.bookings);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    user && fetchBookings();
+  }, [user]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="px-6 md:px-16 lg:px-24 xl:px-32 2xl:px-48 mt-16 text-sm max-w-7xl"
+    >
+      <Title
+        title="My Bookings"
+        subTitle="Review your current and past car rental bookings"
+        align="left"
+      />
+
+      <div>
+        {bookings.map((booking, index) => (
+          <motion.div
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.4 }}
+            key={booking._id}
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border border-borderColor rounded-md mt-5 first:mt-12"
+          >
+            <div className="md:col-span-1">
+              <div className="rounded-md overflow-hidden mb-3">
+                <img
+                  src={booking?.car?.image}
+                  alt={booking?.car?.model}
+                  className="w-full h-auto aspect-video object-cover"
+                />
+              </div>
+              <p className="text-lg font-medium mt-2">
+                {booking?.car?.brand} {booking?.car?.model}
+              </p>
+              <p className="text-gray-500">
+                {booking?.car?.category} . {booking?.car?.year}{" "}
+                <span className="text-sm text-gray-600">
+                  {booking?.car?.location}
+                </span>
+              </p>
+            </div>
+
+            {/* Booking Details */}
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2">
+                <p className="px-3 py-1.5 bg-light rounded">
+                  Booking #{index + 1}
+                </p>
+                <p
+                  className={`px-3 py-1 text-xs rounded-full ${
+                    booking.status === "confirmed"
+                      ? "bg-green-200 text-green-800"
+                      : "bg-red-200 text-red-800"
+                  }`}
+                >
+                  {booking.status}
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2 mt-3">
+                <img
+                  src={assets.calendar_icon_colored}
+                  alt=""
+                  className="w-4 h-4 mt-1"
+                />
+                <div>
+                  <p className="text-gray-500">Rental Period </p>
+                  <p>
+                    {booking?.pickUpDate || booking?.pickupDate
+                      ? new Date(booking.pickUpDate || booking.pickupDate)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""}{" "}
+                    To{" "}
+                    {booking?.returnDate
+                      ? new Date(booking.returnDate).toISOString().split("T")[0]
+                      : ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 mt-3">
+                <img
+                  src={assets.location_icon_colored}
+                  alt=""
+                  className="w-4 h-4 mt-1"
+                />
+                <div>
+                  <p className="text-gray-500">Pick-up Location </p>
+                  <p>{booking.car.location}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment and Status */}
+            <div className="md:col-span-1 flex flex-col justify-between gap-6">
+              <div className="text-sm text-gray-500 text-right">
+                <p>Total Price</p>
+                <h1>
+                  {currency} {booking.price}
+                </h1>
+                <p>
+                  Booked on{" "}
+                  {booking?.createdAt
+                    ? new Date(booking.createdAt).toISOString().split("T")[0]
+                    : ""}
+                </p>
+              </div>
+              <div className="text-right">
+                {/* Show link to car details / reviews for bookings that are confirmed */}
+                {booking.status === "confirmed" && (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/car-details/${booking.car._id}?showReviews=true`
+                      )
+                    }
+                    className="mt-2 inline-block bg-primary text-white px-4 py-2 rounded hover:bg-primary-dull"
+                  >
+                    View / Leave Review
+                  </button>
+                )}
+                {booking.status !== "confirmed" && (
+                  <button
+                    onClick={() => navigate(`/car-details/${booking.car._id}`)}
+                    className="mt-2 inline-block bg-gray-200 text-gray-700 px-4 py-2 rounded"
+                  >
+                    View Car
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+export default MyBookings;
